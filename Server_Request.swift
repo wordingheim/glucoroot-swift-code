@@ -51,7 +51,6 @@ func calculate(data_entry: [[Any]], completion: @escaping (Result<[String: Doubl
                         }
                     }
                 } catch {
-                    //print("Failed to parse response:", error)
                     completion(.failure(error))
                 }
             }
@@ -199,4 +198,88 @@ func addUser(user:String, pw:String, email:String, name:String, phone:String, co
     // Start the task
     task.resume()
     
+}
+let g = Post(id: 1, author: "Emily R.", content: "Just hit my 100-day streak of logging meals! 🎉 This app has been a game-changer for me.")
+             //, likes: 24, comments: 7)
+
+func fetchPosts(completion: @escaping(Array<Post>?) -> Void) {
+    let url = URL(string: "http://127.0.0.1:5000/recent_messages")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+    var posts : Array<Post> = []
+    //print(g)
+    let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        if let error = error {
+            completion(nil)
+            return
+        }
+
+        guard let data = data else {
+            print("No data received")
+            return
+        }
+
+        // Parse the JSON response
+        do {
+            
+            
+            if let jsonArray = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] {
+                        
+                for item in jsonArray {
+                    if let id = item["id"] as? Int,
+                       let username = item["username"] as? String,
+                       let content = item["content"] as? String {
+                        posts.append(Post(id: id, author: username, content: content))
+                    }
+                    
+                    
+                }
+                print("posts updated")
+                completion(posts)
+            } else {
+                print("JSON is not an array of dictionaries")
+            }
+        } catch let decodingError {
+            completion(nil)
+        }
+    }
+    
+    task.resume()
+}
+
+
+func sendMessage(txt:String, completion: @escaping(Bool) -> Void) {
+    let url = URL(string: "http://127.0.0.1:5000/send_message")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+    let list: [String: Any] = [
+        "message": txt
+    ]
+    let jsonData = try? JSONSerialization.data(withJSONObject: list)
+    request.httpBody = jsonData
+    
+    let task = session.dataTask(with: request) { data, response, error in
+        if let error = error {
+            print("Error:", error.localizedDescription)
+            completion(false)
+            return
+        }
+        if let httpResponse = response as? HTTPURLResponse {
+            print("HTTP Status Code:", httpResponse.statusCode)
+            if httpResponse.statusCode == 201 {
+                print("success")
+                completion(true)
+            } else {
+                print("error")
+                completion(false)
+            }
+        }
+        
+
+    }
+    task.resume()
 }
