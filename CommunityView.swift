@@ -1,12 +1,84 @@
 import SwiftUI
 
+struct messageScreen: View {
+    @Environment(\.presentationMode) var presentationMode
+    @State var txt: String = ""
+    var body: some View {
+        ZStack {
+            secondcolor
+                .ignoresSafeArea(.all)
+            VStack {
+                TextEditor(text: $txt)
+                    .frame(height: 300) // Sets the height for the text box
+                    .border(Color.gray, width: 1)
+                    .padding()
+                Button(action: {
+                    fetchPosts() { success in
+                        
+                    }
+                }) {
+                    Text("GO")
+                }
+                Button(action: {
+                    sendMessage(txt:txt) { success in
+                        print(success)
+                        if success {
+                            DispatchQueue.main.async {
+                                presentationMode.wrappedValue.dismiss()
+                            }
+                        }
+                    }
+                }) {
+                    Text("Add")
+                        .foregroundColor(offwhite)
+                        .padding()
+                        .background(maincolor)
+
+                }
+            }
+            
+        }
+        
+    }
+}
+
+struct AddButton: View {
+    var body: some View {
+        NavigationLink(destination: messageScreen()) {
+            
+            ZStack {
+                Circle()
+                    .fill(maincolor)
+                    .frame(width: 80, height: 80) // Set the circle size
+
+                Image(systemName: "plus")
+                    .resizable()
+                    .foregroundColor(offwhite)
+                    .frame(width: 25, height: 25) // Set the image size
+            }
+            .frame(width: 80, height: 80)
+            .shadow(radius: 10)
+        }
+        .navigationTitle("Home")
+    }
+}
+
 struct CommunityPage: View {
     @State private var activeTab = "feed"
     
+    @State var pst : Array<Post> = []
+    
+
+    
+    
+    
     let posts = [
-        Post(id: 1, author: "Emily R.", content: "Just hit my 100-day streak of logging meals! 🎉 This app has been a game-changer for me.", likes: 24, comments: 7),
-        Post(id: 2, author: "Michael S.", content: "Question: Has anyone tried the new CGM device? Thinking about switching.", likes: 15, comments: 12),
-        Post(id: 3, author: "Sophia L.", content: "Today's small win: Resisted the temptation of office donuts. Stay strong, everyone! 💪", likes: 32, comments: 5)
+        Post(id: 1, author: "Emily R.", content: "Just hit my 100-day streak of logging meals! 🎉 This app has been a game-changer for me."),
+             //, likes: 24, comments: 7),
+        Post(id: 2, author: "Michael S.", content: "Question: Has anyone tried the new CGM device? Thinking about switching."),
+             //, likes: 15, comments: 12),
+        Post(id: 3, author: "Sophia L.", content: "Today's small win: Resisted the temptation of office donuts. Stay strong, everyone! 💪")
+             //, likes: 32, comments: 5)
     ]
     
     let events = [
@@ -17,12 +89,11 @@ struct CommunityPage: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header
                 ZStack {
                     maincolor
                     VStack{
                         Spacer()
-                            .frame(height:90)
+                            .frame(height:120)
                         Text("GlucoGuide Community")
                             .font(.title)
                             .fontWeight(.bold)
@@ -33,8 +104,9 @@ struct CommunityPage: View {
                 }
                 .frame(height: 60)
                 .ignoresSafeArea(edges: .top)
-                
-                // Tab Navigation
+                    
+                    
+                    // Tab Navigation
                 HStack {
                     ForEach(["feed", "groups", "events"], id: \.self) { tab in
                         Button(action: {
@@ -54,14 +126,14 @@ struct CommunityPage: View {
                 .background(Color.white)
                 .shadow(radius: 2)
                 .mask(Rectangle().padding(.bottom, -20))
-                
-                
-                // Main Content
+                    
+                    
+                    // Main Content
                 ScrollView {
                     VStack(spacing: 16) {
                         switch activeTab {
                         case "feed":
-                            ForEach(posts) { post in
+                            ForEach(pst) { post in
                                 PostView(post: post)
                             }
                         case "groups":
@@ -79,14 +151,30 @@ struct CommunityPage: View {
                         }
                     }
                     .padding()
-                }
-                
-                // Bottom Navigation
-                
+                }.overlay(
+                    VStack {
+                        Button(action:{
+                            fetchPosts() {response in
+                                pst = response ?? pst
+                            }
+                        }){
+                            Text("sneed")
+                        }
+                        AddButton()
+                            .padding(20)
+                        
+                    },
+                    alignment: .bottomTrailing
+                    
+                )
+                    
             }
-            //.edgesIgnoringSafeArea(.top)
+            .navigationBarHidden(true)
         }
+        
+        
     }
+    
     
     func iconName(for item: String) -> String {
         switch item {
@@ -100,42 +188,47 @@ struct CommunityPage: View {
 }
 
 struct PostView: View {
-    let post: Post
+    @State var post: Post
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(String(post.author.prefix(1)))
-                    .font(.headline)
-                    .foregroundColor(maincolor)
-                    .frame(width: 40, height: 40)
-                    .background(secondcolor)
-                    .clipShape(Circle())
-                
-                Text(post.author)
-                    .font(.headline)
-            }
-            
-            Text(post.content)
-                .font(.body)
-            
-            HStack {
-                Button(action: {}) {
-                    Image(systemName: "heart")
-                    Text("\(post.likes)")
+        HStack{
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(String(post.author.prefix(1)))
+                        .font(.headline)
+                        .foregroundColor(maincolor)
+                        .frame(width: 40, height: 40)
+                        .background(secondcolor)
+                        .clipShape(Circle())
+                    
+                    Text(post.author)
+                        .font(.headline)
                 }
                 
-                Button(action: {}) {
-                    Image(systemName: "message")
-                    Text("\(post.comments)")
+                Text(post.content)
+                    .font(.body)
+                
+                HStack {
+                    Button(action: {}) {
+                        Image(systemName: "heart")
+                        //Text("\(post.likes)")
+                    }
+                    
+                    Button(action: {}) {
+                        Image(systemName: "message")
+                        //Text("\(post.comments)")
+                    }
                 }
+                .foregroundColor(.gray)
             }
-            .foregroundColor(.gray)
+            Spacer()
         }
         .padding()
+        .frame(maxWidth:.infinity)
         .background(Color.white)
         .cornerRadius(10)
         .shadow(radius: 2)
+        
     }
 }
 
@@ -208,8 +301,8 @@ struct Post: Identifiable {
     let id: Int
     let author: String
     let content: String
-    let likes: Int
-    let comments: Int
+    //let likes: Int
+    //let comments: Int
 }
 
 struct Event: Identifiable {
@@ -222,5 +315,6 @@ struct Event: Identifiable {
 struct CommunityPage_Previews: PreviewProvider {
     static var previews: some View {
         CommunityPage()
+        //messageScreen()
     }
 }
