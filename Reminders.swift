@@ -47,22 +47,18 @@ struct RemindersView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                Color(red: 0.9, green: 1.0, blue: 0.9) // Light green background
-                    .edgesIgnoringSafeArea(.all)
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        addReminderForm
-                        
-                        ForEach(reminders) { reminder in
-                            ReminderCard(reminder: reminder, onDelete: deleteReminder)
-                        }
+            ScrollView {
+                VStack(spacing: 20) {
+                    addReminderForm
+                    
+                    ForEach(reminders) { reminder in
+                        ReminderCard(reminder: reminder, onDelete: deleteReminder)
                     }
-                    .padding()
                 }
+                .padding()
             }
             .navigationTitle("Diabetes Reminders")
+            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
         }
     }
     
@@ -70,7 +66,7 @@ struct RemindersView: View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Add New Reminder")
                 .font(.headline)
-                .foregroundColor(.green)
+                .foregroundColor(maincolor)
             
             Picker("Type", selection: $newReminder.type) {
                 ForEach(ReminderType.allCases) { type in
@@ -78,13 +74,17 @@ struct RemindersView: View {
                 }
             }
             .pickerStyle(MenuPickerStyle())
+            .accentColor(maincolor)
             
             DatePicker("Time", selection: $newReminder.time, displayedComponents: .hourAndMinute)
+                .accentColor(maincolor)
             
             TextField("Description", text: $newReminder.description)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .foregroundColor(textcolor)
             
             Toggle("Recurring Reminder", isOn: $newReminder.isRecurring)
+                .tint(maincolor)
             
             if newReminder.isRecurring {
                 Picker("Frequency", selection: $newReminder.recurringFrequency.animation()) {
@@ -97,17 +97,20 @@ struct RemindersView: View {
             
             Button(action: addReminder) {
                 Text("Add Reminder")
-                    .foregroundColor(.white)
+                    .foregroundColor(thirdcolor)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.green)
+                    .background(maincolor)
                     .cornerRadius(10)
             }
         }
         .padding()
-        .background(Color.white)
+        .background(thirdcolor)
         .cornerRadius(15)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(bordercolor, lineWidth: 1)
+        )
     }
     
     func addReminder() {
@@ -128,15 +131,16 @@ struct ReminderCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: reminder.type.icon)
-                    .foregroundColor(.green)
+                    .foregroundColor(maincolor)
                     .font(.title2)
                 
                 VStack(alignment: .leading) {
                     Text(reminder.type.rawValue)
                         .font(.headline)
+                        .foregroundColor(textcolor)
                     Text(reminder.time, style: .time)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(textcolor.opacity(0.7))
                 }
                 
                 Spacer()
@@ -150,19 +154,22 @@ struct ReminderCard: View {
             if !reminder.description.isEmpty {
                 Text(reminder.description)
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(textcolor.opacity(0.8))
             }
             
             if reminder.isRecurring, let frequency = reminder.recurringFrequency {
                 Text("Repeats: \(frequency.rawValue)")
                     .font(.caption)
-                    .foregroundColor(.green)
+                    .foregroundColor(maincolor)
             }
         }
         .padding()
-        .background(Color.white)
+        .background(thirdcolor)
         .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(bordercolor, lineWidth: 1)
+        )
     }
 }
 
