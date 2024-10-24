@@ -9,82 +9,98 @@ import SwiftUI
 
 struct DiabetesStatusSelectionView: View {
     @State private var hasDiabetes: Bool?
-
+    
     var body: some View {
-        ZStack {
-            Color(red: 240/255, green: 255/255, blue: 240/255)
-                .edgesIgnoringSafeArea(.all)
-            
-            VStack {
-                Card {
-                    VStack(spacing: 20) {
-                        Text("Your Diabetes Status")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(Color.green)
-
-                        Text("Please select the option that best describes you:")
-                            .font(.system(size: 16))
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                        
-                        Button("I have diabetes") {
-                            self.hasDiabetes = true
-                            print("User has diabetes")
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-                        
-                        Button("I want to take the diabetes risk assessment") {
-                            self.hasDiabetes = false
-                            print("User wants risk assessment")
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .background(Color(red: 220/255, green: 252/255, blue: 231/255))
-
-                        Text("Your selection helps us personalize your experience")
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding()
+        NavigationView {
+            ScrollView {
+                VStack {
+                    Spacer(minLength: 20)
+                    
+                    statusSelectionCard
+                        .padding(.horizontal)
+                        .frame(maxWidth: 500) // Limit maximum width for larger screens
+                    
+                    Spacer(minLength: 20)
                 }
-                .frame(maxWidth: 400)
             }
+            .navigationTitle("Welcome")
+            .background(secondcolor.edgesIgnoringSafeArea(.all))
         }
     }
+    
+    var statusSelectionCard: some View {
+        VStack(spacing: 25) {
+            VStack(spacing: 12) {
+                Image(systemName: "heart.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(maincolor)
+                    .padding(.bottom, 5)
+                
+                Text("Your Diabetes Status")
+                    .font(.title2)
+                    .bold()
+                    .foregroundColor(maincolor)
+                
+                Text("Please select the option that best describes you")
+                    .font(.body)
+                    .foregroundColor(textcolor.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 10)
+            
+            VStack(spacing: 15) {
+                StatusButton(title: "I Have Diabetes",
+                           icon: "cross.case.fill",
+                           action: { self.hasDiabetes = true })
+                
+                StatusButton(title: "Take Risk Assessment",
+                           icon: "clipboard.fill",
+                           action: { self.hasDiabetes = false })
+            }
+            .padding(.horizontal, 5)
+            
+            Text("Your selection helps us personalize your experience")
+                .font(.subheadline)
+                .foregroundColor(textcolor.opacity(0.6))
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 10)
+        }
+        .padding(20)
+        .background(thirdcolor)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(bordercolor, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
 }
 
-struct Card<Content: View>: View {
-    let content: Content
-    
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
+struct StatusButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
     
     var body: some View {
-        content
-            .background(Color.white)
+        Button(action: action) {
+            HStack(spacing: 15) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                
+                Text(title)
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(maincolor)
+            .foregroundColor(thirdcolor)
             .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
-    }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding()
-            .background(Color.green)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.2))
+        }
     }
 }
 
 struct DiabetesStatusSelectionView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            DiabetesStatusSelectionView()
-            DiabetesStatusSelectionView().preferredColorScheme(.dark)
-        }
+        DiabetesStatusSelectionView()
     }
 }
