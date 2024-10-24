@@ -1,252 +1,457 @@
 import SwiftUI
 
-struct LoggedMeal: Identifiable {
+// MARK: - Models
+struct FoodItem: Identifiable {
     let id = UUID()
-    let name: String
-    let calories: Int
-    let carbs: Int
-    let fats: Int
-    let proteins: Int
-    let portionSize: Int
-    let servingUnit: String
-    let notes: String
+    var name: String
+    var calories: Double
+    var carbs: Double
+    var fat: Double
+    var protein: Double
+    var portionSize: Double
+    var servingUnit: ServingUnit
+    var notes: String
+    var isFavorite: Bool
+    var loggedMealType: LoggedMealType
 }
 
-struct MealSection: View {
-    let title: String
-    @Binding var loggedMeals: [LoggedMeal]
-    @Binding var favorites: [String]
-    @State private var isExpanded = false
-    @State private var showAddFood = false
-    @State private var expandedMealId: UUID?
+enum ServingUnit: String, CaseIterable {
+    case grams = "grams"
+    case cups = "cups"
+    case tablespoons = "tablespoons"
+    case teaspoons = "teaspoons"
+    case pieces = "pieces"
+    case ounces = "ounces"
+    case milliliters = "milliliters"
+    case slices = "slices"
+    case servings = "servings"
+}
 
+enum LoggedMealType: String, CaseIterable {
+    case breakfast = "Breakfast"
+    case lunch = "Lunch"
+    case dinner = "Dinner"
+    case snacks = "Snacks"
+}
+
+enum FoodEntryTab: String, CaseIterable {
+    case basic = "Basic"
+    case nutrition = "Nutrition"
+    case notes = "Notes"
+}
+
+struct MealLoggingView: View {
+    @State private var currentDate = Date()
+    @State private var meals: [LoggedMealType: [FoodItem]] = [:]
+    @State private var favorites: [LoggedMealType: [FoodItem]] = [:]
+    @State private var expandedSection: LoggedMealType?
+    @State private var selectedTab: FoodEntryTab = .basic
+    
+    @State private var newFoodItem = FoodItem(
+        name: "",
+        calories: 0,
+        carbs: 0,
+        fat: 0,
+        protein: 0,
+        portionSize: 1,
+        servingUnit: .servings,
+        notes: "",
+        isFavorite: false,
+        loggedMealType: .breakfast
+    )
+    
     var body: some View {
-        VStack(alignment: .leading) {
-            Button(action: { isExpanded.toggle() }) {
-                HStack {
-                    Text(title)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                    Spacer()
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Meal Logger")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(textcolor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top)
+                    
+                    dateHeader
+                    
+                    ForEach(LoggedMealType.allCases, id: \.self) { mealType in
+                        VStack(spacing: 0) {
+                            mealSection(type: mealType)
+                            
+                            if expandedSection == mealType {
+                                foodEntryForm(for: mealType)
+                                    .transition(.move(edge: .top))
+                            }
+                        }
+                    }
+                    
+                    favoritesSection
+                }
+                .padding()
+            }
+            .navigationBarItems(
+                leading: Button(action: {
+                    // Handle back navigation
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Back to Meal Log Calendar")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
+            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
+        }
+    }
+    
+    var dateHeader: some View {
+        Text(currentDate.formatted(date: .long, time: .omitted))
+            .font(.headline)
+            .foregroundColor(textcolor)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(thirdcolor)
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(bordercolor, lineWidth: 1)
+            )
+    }
+    
+    func mealSection(type: LoggedMealType) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(type.rawValue)
+                    .font(.title3)
+                    .foregroundColor(textcolor)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation {
+                        if expandedSection == type {
+                            expandedSection = nil
+                        } else {
+                            expandedSection = type
+                            newFoodItem.loggedMealType = type
+                            selectedTab = .basic
+                            resetNewFoodItem()
+                        }
+                    }
+                }) {
+                    Image(systemName: expandedSection == type ? "minus.circle.fill" : "plus.circle.fill")
+                        .foregroundColor(maincolor)
                 }
             }
-            .padding(.vertical, 8)
-
-            if isExpanded {
-                ForEach(loggedMeals) { loggedMeal in
-                    VStack {
-                        HStack {
-                            Text(loggedMeal.name)
-                            Spacer()
-                            Button(action: { expandedMealId = (expandedMealId == loggedMeal.id) ? nil : loggedMeal.id }) {
-                                Image(systemName: "info.circle")
-                            }
-                            Button(action: { loggedMeals.removeAll { $0.id == loggedMeal.id } }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                        }
-                        .padding(.vertical, 4)
-
-                        if expandedMealId == loggedMeal.id {
-                            VStack(alignment: .leading) {
-                                Text("Calories: \(loggedMeal.calories)")
-                                Text("Carbs: \(loggedMeal.carbs)g")
-                                Text("Fats: \(loggedMeal.fats)g")
-                                Text("Proteins: \(loggedMeal.proteins)g")
-                                Text("Portion: \(loggedMeal.portionSize) \(loggedMeal.servingUnit)")
-                                if !loggedMeal.notes.isEmpty {
-                                    Text("Notes: \(loggedMeal.notes)")
-                                }
-                            }
-                            .padding()
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                    }
+            
+            ForEach(meals[type] ?? []) { food in
+                FoodItemCard(food: food) {
+                    deleteFoodItem(food, from: type)
                 }
-
-                Button(action: { showAddFood = true }) {
-                    HStack {
-                        Image(systemName: "plus.circle")
-                        Text("Add \(title)")
-                    }
-                }
-                .padding(.vertical, 8)
             }
         }
         .padding()
-        .background(Color.white)
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .sheet(isPresented: $showAddFood) {
-            AddFoodForm(onAddFood: { loggedMeal, isFavorite in
-                loggedMeals.append(loggedMeal)
-                if isFavorite && !favorites.contains(loggedMeal.name) {
-                    favorites.append(loggedMeal.name)
-                }
-                showAddFood = false
-            }, onCancel: { showAddFood = false })
-        }
+        .background(thirdcolor)
+        .cornerRadius(15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(bordercolor, lineWidth: 1)
+        )
     }
-}
-
-struct AddFoodForm: View {
-    @State private var foodName = ""
-    @State private var calories = ""
-    @State private var carbs = ""
-    @State private var fats = ""
-    @State private var proteins = ""
-    @State private var portionSize = ""
-    @State private var servingUnit = "grams"
-    @State private var notes = ""
-    @State private var isFavorite = false
-    @Environment(\.presentationMode) var presentationMode
-
-    let onAddFood: (LoggedMeal, Bool) -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Food Details")) {
-                    TextField("Food Name", text: $foodName)
-                    TextField("Calories", text: $calories)
-                        .keyboardType(.numberPad)
-                    TextField("Carbs (g)", text: $carbs)
-                        .keyboardType(.numberPad)
-                    TextField("Fats (g)", text: $fats)
-                        .keyboardType(.numberPad)
-                    TextField("Proteins (g)", text: $proteins)
-                        .keyboardType(.numberPad)
-                }
-
-                Section(header: Text("Portion")) {
-                    TextField("Portion Size", text: $portionSize)
-                        .keyboardType(.numberPad)
-                    Picker("Serving Unit", selection: $servingUnit) {
-                        ForEach(["grams", "cups", "ounces", "pieces"], id: \.self) { unit in
-                            Text(unit).tag(unit)
-                        }
-                    }
-                }
-
-                Section(header: Text("Additional Notes")) {
-                    TextEditor(text: $notes)
-                        .frame(height: 100)
-                }
-
-                Section {
-                    Toggle("Add to Favorites", isOn: $isFavorite)
+    
+    func foodEntryForm(for mealType: LoggedMealType) -> some View {
+        VStack(spacing: 15) {
+            Picker("Entry Section", selection: $selectedTab) {
+                ForEach(FoodEntryTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
                 }
             }
-            .navigationTitle("Add Food")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    onCancel()
-                    presentationMode.wrappedValue.dismiss()
-                },
-                trailing: Button("Add") {
-                    let loggedMeal = LoggedMeal(
-                        name: foodName,
-                        calories: Int(calories) ?? 0,
-                        carbs: Int(carbs) ?? 0,
-                        fats: Int(fats) ?? 0,
-                        proteins: Int(proteins) ?? 0,
-                        portionSize: Int(portionSize) ?? 0,
-                        servingUnit: servingUnit,
-                        notes: notes
-                    )
-                    onAddFood(loggedMeal, isFavorite)
-                    presentationMode.wrappedValue.dismiss()
-                }
-            )
-        }
-    }
-}
-
-struct FoodLoggingPage: View {
-    @State private var loggedMeals: [String: [LoggedMeal]] = [
-        "Breakfast": [],
-        "Lunch": [],
-        "Dinner": [],
-        "Snack": []
-    ]
-    @State private var waterIntake = 0
-    @State private var favorites: [String] = []
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Daily Food Log")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.green)
-
-                VStack {
-                    Text("Water Intake")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                    HStack {
-                        Button(action: { waterIntake = max(0, waterIntake - 1) }) {
-                            Image(systemName: "minus")
-                        }
-                        Text("\(waterIntake) glasses")
-                            .font(.title3)
-                        Button(action: { waterIntake += 1 }) {
-                            Image(systemName: "plus")
-                        }
+            .pickerStyle(SegmentedPickerStyle())
+            .colorMultiply(maincolor)
+            
+            switch selectedTab {
+            case .basic:
+                basicInfoTab
+            case .nutrition:
+                nutritionInfoTab
+            case .notes:
+                notesTab
+            }
+            
+            HStack {
+                Button("Cancel") {
+                    withAnimation {
+                        expandedSection = nil
+                        resetNewFoodItem()
                     }
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(radius: 2)
-
-                ForEach(["Breakfast", "Lunch", "Dinner", "Snack"], id: \.self) { mealType in
-                    MealSection(
-                        title: mealType,
-                        loggedMeals: Binding(
-                            get: { self.loggedMeals[mealType] ?? [] },
-                            set: { self.loggedMeals[mealType] = $0 }
-                        ),
-                        favorites: $favorites
-                    )
+                .foregroundColor(.red)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+                
+                Spacer()
+                
+                Button("Save") {
+                    saveFoodItem()
+                    withAnimation {
+                        expandedSection = nil
+                    }
                 }
-
-                VStack(alignment: .leading) {
-                    Text("Quick Access - Favorites")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(favorites, id: \.self) { favorite in
-                                Text(favorite)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.green.opacity(0.1))
-                                    .cornerRadius(20)
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(maincolor)
+                .cornerRadius(8)
+            }
+            .padding(.top)
+        }
+        .padding()
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(15)
+    }
+    
+    var basicInfoTab: some View {
+        VStack(spacing: 15) {
+            TextField("Food Name", text: $newFoodItem.name)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .foregroundColor(textcolor)
+            
+            HStack {
+                TextField("Portion Size", value: $newFoodItem.portionSize, format: .number)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(textcolor)
+                
+                Picker("Unit", selection: $newFoodItem.servingUnit) {
+                    ForEach(ServingUnit.allCases, id: \.self) { unit in
+                        Text(unit.rawValue).tag(unit)
+                    }
+                }
+                .foregroundColor(textcolor)
+            }
+            
+            Toggle("Add to Favorites", isOn: $newFoodItem.isFavorite)
+                .foregroundColor(textcolor)
+        }
+    }
+    
+    var nutritionInfoTab: some View {
+        VStack(spacing: 15) {
+            HStack {
+                Text("Calories")
+                    .foregroundColor(textcolor)
+                TextField("", value: $newFoodItem.calories, format: .number)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(textcolor)
+            }
+            
+            HStack {
+                Text("Carbs (g)")
+                    .foregroundColor(textcolor)
+                TextField("", value: $newFoodItem.carbs, format: .number)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(textcolor)
+            }
+            
+            HStack {
+                Text("Fat (g)")
+                    .foregroundColor(textcolor)
+                TextField("", value: $newFoodItem.fat, format: .number)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(textcolor)
+            }
+            
+            HStack {
+                Text("Protein (g)")
+                    .foregroundColor(textcolor)
+                TextField("", value: $newFoodItem.protein, format: .number)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(textcolor)
+            }
+        }
+    }
+    
+    var notesTab: some View {
+        TextEditor(text: $newFoodItem.notes)
+            .frame(height: 100)
+            .foregroundColor(textcolor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(bordercolor, lineWidth: 1)
+            )
+    }
+    
+    var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("Favorites")
+                .font(.title3)
+                .foregroundColor(textcolor)
+            
+            ForEach(LoggedMealType.allCases, id: \.self) { mealType in
+                if let favoritesForType = favorites[mealType], !favoritesForType.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(mealType.rawValue)
+                            .font(.headline)
+                            .foregroundColor(textcolor)
+                        
+                        ForEach(favoritesForType) { food in
+                            FavoriteItemCard(food: food) {
+                                addFavoriteToMeal(food)
                             }
                         }
                     }
                 }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(radius: 2)
             }
-            .padding()
         }
-        .background(Color.green.opacity(0.1).edgesIgnoringSafeArea(.all))
+        .padding()
+        .background(thirdcolor)
+        .cornerRadius(15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(bordercolor, lineWidth: 1)
+        )
+    }
+    
+    func saveFoodItem() {
+        var currentMeals = meals[newFoodItem.loggedMealType] ?? []
+        currentMeals.append(newFoodItem)
+        meals[newFoodItem.loggedMealType] = currentMeals
+        
+        if newFoodItem.isFavorite {
+            var currentFavorites = favorites[newFoodItem.loggedMealType] ?? []
+            currentFavorites.append(newFoodItem)
+            favorites[newFoodItem.loggedMealType] = currentFavorites
+        }
+        
+        resetNewFoodItem()
+    }
+    
+    func resetNewFoodItem() {
+        newFoodItem = FoodItem(
+            name: "",
+            calories: 0,
+            carbs: 0,
+            fat: 0,
+            protein: 0,
+            portionSize: 1,
+            servingUnit: .servings,
+            notes: "",
+            isFavorite: false,
+            loggedMealType: newFoodItem.loggedMealType
+        )
+    }
+    
+    func deleteFoodItem(_ food: FoodItem, from mealType: LoggedMealType) {
+        meals[mealType]?.removeAll { $0.id == food.id }
+    }
+    
+    func addFavoriteToMeal(_ food: FoodItem) {
+        var foodCopy = food
+        foodCopy.loggedMealType = expandedSection ?? food.loggedMealType
+        saveFoodItem()
     }
 }
 
-struct FoodLoggingPage_Previews: PreviewProvider {
+struct FoodItemCard: View {
+    let food: FoodItem
+    let onDelete: () -> Void
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: { isExpanded.toggle() }) {
+                HStack {
+                    Text(food.name)
+                        .font(.headline)
+                        .foregroundColor(textcolor)
+                    
+                    Spacer()
+                    
+                    if food.isFavorite {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                    }
+                    
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Portion: \(food.portionSize, specifier: "%.1f") \(food.servingUnit.rawValue)")
+                    Text("Calories: \(food.calories, specifier: "%.0f")")
+                    Text("Carbs: \(food.carbs, specifier: "%.1f")g")
+                    Text("Fat: \(food.fat, specifier: "%.1f")g")
+                    Text("Protein: \(food.protein, specifier: "%.1f")g")
+                    
+                    if !food.notes.isEmpty {
+                        Text("Notes: \(food.notes)")
+                    }
+                }
+                .foregroundColor(textcolor)
+                .padding(.leading)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(8)
+        .animation(.easeInOut, value: isExpanded)
+    }
+}
+
+struct FavoriteItemCard: View {
+    let food: FoodItem
+    let onAdd: () -> Void
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: { isExpanded.toggle() }) {
+                HStack {
+                    Text(food.name)
+                        .font(.headline)
+                        .foregroundColor(textcolor)
+                    
+                    Spacer()
+                    
+                    Button(action: onAdd) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(maincolor)
+                    }
+                }
+            }
+            
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Portion: \(food.portionSize, specifier: "%.1f") \(food.servingUnit.rawValue)")
+                    Text("Calories: \(food.calories, specifier: "%.0f")")
+                    Text("Carbs: \(food.carbs, specifier: "%.1f")g")
+                    Text("Fat: \(food.fat, specifier: "%.1f")g")
+                    Text("Protein: \(food.protein, specifier: "%.1f")g")
+                    
+                    if !food.notes.isEmpty {
+                        Text("Notes: \(food.notes)")
+                    }
+                }
+                .padding(.leading)
+            }
+        }
+        .padding()
+        .background(Color(.tertiarySystemBackground))
+        .cornerRadius(8)
+        .animation(.easeInOut, value: isExpanded)
+    }
+}
+
+struct MealLoggingView_Previews: PreviewProvider {
     static var previews: some View {
-        FoodLoggingPage()
+        MealLoggingView()
     }
 }
