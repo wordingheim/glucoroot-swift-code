@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct ProfileView: View {
-    //@Binding var isloggedin: Bool
+    @State private var showingEditProfile = false
+    @State private var isCGMConnected = false
     
     let profile = Profile(
         name: "Sarah Johnson",
@@ -18,7 +19,9 @@ struct ProfileView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    ProfileHeader(profile: profile)
+                    ProfileHeader(profile: profile, showingEditProfile: $showingEditProfile)
+                    
+                    CGMConnectionCard(isConnected: $isCGMConnected)
                     
                     HealthOverview(profile: profile)
                     
@@ -34,6 +37,9 @@ struct ProfileView: View {
             }
             .background(secondcolor)
             .navigationBarHidden(true)
+            .sheet(isPresented: $showingEditProfile) {
+                EditProfileView(profile: profile)
+            }
         }
     }
 }
@@ -51,10 +57,12 @@ struct Profile {
 
 struct ProfileHeader: View {
     let profile: Profile
+    @Binding var showingEditProfile: Bool
     @Environment(\.isLoggedIn) var ilg
     @Environment(\.UserName) var usr
     @Environment(\.Name) var name
     @Environment(\.Email) var email
+    
     var body: some View {
         VStack {
             HStack {
@@ -74,21 +82,34 @@ struct ProfileHeader: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    logout() {success in
-                        if success == true {
-                            ilg.wrappedValue = false
-                            //login = false
-                        }
+                HStack(spacing: 10) {
+                    Button(action: {
+                        showingEditProfile = true
+                    }) {
+                        Image(systemName: "pencil")
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
-                }) {
-                    Text("Log Out")
-                        .font(.caption)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                    
+                    Button(action: {
+                        logout() { success in
+                            if success == true {
+                                ilg.wrappedValue = false
+                            }
+                        }
+                    }) {
+                        Text("Log Out")
+                            .font(.caption)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
                 }
             }
             
@@ -102,6 +123,48 @@ struct ProfileHeader: View {
         .background(maincolor)
         .foregroundColor(.white)
         .cornerRadius(15)
+    }
+}
+
+struct CGMConnectionCard: View {
+    @Binding var isConnected: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CGM Device")
+                .font(.headline)
+            
+            HStack {
+                Image(systemName: isConnected ? "wave.3.right.circle.fill" : "wave.3.right.circle")
+                    .font(.title2)
+                    .foregroundColor(isConnected ? .green : .gray)
+                
+                VStack(alignment: .leading) {
+                    Text(isConnected ? "CGM Connected" : "No CGM Connected")
+                        .font(.subheadline)
+                    Text(isConnected ? "Device is sending data" : "Connect your CGM device")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    isConnected.toggle()
+                }) {
+                    Text(isConnected ? "Disconnect" : "Connect")
+                        .font(.caption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(isConnected ? Color.red : Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
     }
 }
 
@@ -155,6 +218,40 @@ struct HealthInfoItem: View {
     }
 }
 
+struct EditProfileView: View {
+    let profile: Profile
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Personal Information")) {
+                    TextField("Name", text: .constant(profile.name))
+                    TextField("Email", text: .constant(profile.email))
+                    TextField("Age", text: .constant(profile.age))
+                }
+                
+                Section(header: Text("Medical Information")) {
+                    TextField("Diabetes Type", text: .constant(profile.diabetesType))
+                    TextField("Diagnosis Year", text: .constant(profile.diagnosisYear))
+                    TextField("Insulin Type", text: .constant(profile.insulinType))
+                    TextField("Daily Insulin Dose", text: .constant(profile.dailyInsulinDose))
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarItems(
+                leading: Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                },
+                trailing: Button("Save") {
+                    // Add save logic here
+                    presentationMode.wrappedValue.dismiss()
+                }
+            )
+        }
+    }
+}
+
 struct UploadBloodwork: View {
     var body: some View {
         VStack {
@@ -188,6 +285,7 @@ struct UploadBloodwork: View {
 struct DiabetesAssessment: View {
     @Environment(\.Email) var email
     @Environment(\.Percent) var percent
+    
     var body: some View {
         VStack {
             Text("Diabetes Assessment")
@@ -203,8 +301,8 @@ struct DiabetesAssessment: View {
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
-            NavigationLink(destination:
-                            DiabetesRiskResult(riskPercentage:percent.wrappedValue)) {
+            
+            NavigationLink(destination: DiabetesRiskResult(riskPercentage:percent.wrappedValue)) {
                 HStack {
                     Image(systemName: "exclamationmark.triangle")
                     Text("View Quiz Results")
@@ -215,7 +313,6 @@ struct DiabetesAssessment: View {
                 .foregroundColor(.white)
                 .cornerRadius(10)
             }
-            
         }
         .padding()
         .background(Color.white)
@@ -302,13 +399,12 @@ struct ContentView1: View {
                     Image(systemName: "person.3")
                     Text("Community")
                 }
-            
-            
-        }.accentColor(maincolor)
+        }
+        .accentColor(maincolor)
     }
 }
 
-struct abc: PreviewProvider {
+struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView()
     }
