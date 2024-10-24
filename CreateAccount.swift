@@ -7,111 +7,209 @@
 
 import SwiftUI
 
-struct RegistrationScreen: View {
+struct CreateAccountView: View {
     @State private var username: String = ""
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
-    @State private var alertMessage: String = ""
-    @State private var showAlert: Bool = false
+    @State private var showingSuccessMessage = false
     
     var body: some View {
-        ZStack {
-            LinearGradient(gradient: Gradient(colors: [Color.green.opacity(0.05), Color.green.opacity(0.1)]), startPoint: .top, endPoint: .bottom)
-                .edgesIgnoringSafeArea(.all)
-            
+        NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    Text("Create Your Account")
-                        .font(.system(size: 28, weight: .bold))
-                    
-                    Text("Let's set up your GlucoRoot account so BetaBit can personalize your experience.")
-                        .font(.system(size: 16))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    VStack(spacing: 15) {
-                        InputField(title: "Username", text: $username, placeholder: "Choose a username", systemImage: "person.fill")
-                        InputField(title: "Email", text: $email, placeholder: "Enter your email", systemImage: "envelope.fill")
-                        InputField(title: "Password", text: $password, placeholder: "Create a password", systemImage: "lock.fill", isSecure: true)
-                        InputField(title: "Confirm Password", text: $confirmPassword, placeholder: "Confirm your password", systemImage: "lock.fill", isSecure: true)
+                    // Header Section
+                    VStack(spacing: 8) {
+                        Text("Create Your Account")
+                            .font(.title)
+                            .bold()
+                            .foregroundColor(maincolor)
+                        
+                        Text("Let's set up your GlucoRoot account so that BetaBit can personalize your experience.")
+                            .font(.subheadline)
+                            .foregroundColor(textcolor)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
+                    .padding(.horizontal)
+                    .padding(.top)
                     
-                    Button(action: handleRegister) {
-                        Text("Create Account")
-                            .frame(minWidth: 0, maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
+                    // Form Fields
+                    VStack(spacing: 20) {
+                        // Username Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Username")
+                                .font(.headline)
+                                .foregroundColor(maincolor)
+                            
+                            HStack {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(maincolor)
+                                    .frame(width: 20)
+                                    .padding(.leading, 8)
+                                
+                                TextField("Enter username", text: $username)
+                                    .textFieldStyle(PlainTextFieldStyle())
+                                    .foregroundColor(textcolor)
+                                    .padding(.vertical, 8)
+                            }
+                            .background(Color.white)
                             .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(bordercolor, lineWidth: 1))
+                        }
+                        .padding()
+                        .background(thirdcolor)
+                        .cornerRadius(15)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(bordercolor, lineWidth: 1))
+                        
+                        // Email Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Email")
+                                .font(.headline)
+                                .foregroundColor(maincolor)
+                            
+                            HStack {
+                                Image(systemName: "envelope.fill")
+                                    .foregroundColor(maincolor)
+                                    .frame(width: 20)
+                                    .padding(.leading, 8)
+                                
+                                TextField("Enter email", text: $email)
+                                    .textFieldStyle(PlainTextFieldStyle())
+                                    .foregroundColor(textcolor)
+                                    .keyboardType(.emailAddress)
+                                    .autocapitalization(.none)
+                                    .padding(.vertical, 8)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(bordercolor, lineWidth: 1))
+                        }
+                        .padding()
+                        .background(thirdcolor)
+                        .cornerRadius(15)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(bordercolor, lineWidth: 1))
+                        
+                        // Password Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Password")
+                                .font(.headline)
+                                .foregroundColor(maincolor)
+                            
+                            HStack {
+                                Image(systemName: "lock.fill")
+                                    .foregroundColor(maincolor)
+                                    .frame(width: 20)
+                                    .padding(.leading, 8)
+                                
+                                SecureField("Enter password", text: $password)
+                                    .textFieldStyle(PlainTextFieldStyle())
+                                    .foregroundColor(textcolor)
+                                    .padding(.vertical, 8)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(bordercolor, lineWidth: 1))
+                        }
+                        .padding()
+                        .background(thirdcolor)
+                        .cornerRadius(15)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(bordercolor, lineWidth: 1))
+                        
+                        // Confirm Password Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Confirm Password")
+                                .font(.headline)
+                                .foregroundColor(maincolor)
+                            
+                            HStack {
+                                Image(systemName: "lock.shield.fill")
+                                    .foregroundColor(maincolor)
+                                    .frame(width: 20)
+                                    .padding(.leading, 8)
+                                
+                                SecureField("Confirm your password", text: $confirmPassword)
+                                    .textFieldStyle(PlainTextFieldStyle())
+                                    .foregroundColor(textcolor)
+                                    .padding(.vertical, 8)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(bordercolor, lineWidth: 1))
+                        }
+                        .padding()
+                        .background(thirdcolor)
+                        .cornerRadius(15)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(bordercolor, lineWidth: 1))
+                        
+                        // Create Account Button
+                        Button(action: createAccount) {
+                            Text("Create Account")
+                                .foregroundColor(thirdcolor)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(maincolor)
+                                .cornerRadius(10)
+                        }
+                        .padding(.top)
                     }
-                    
-                    Text("By creating an account, you agree to our Terms of Service and Privacy Policy.")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(12)
-                .shadow(radius: 10)
-                .padding()
-            }
-        }
-        .alert(isPresented: $showAlert) {
-            Alert(title: Text("Registration"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-        }
-    }
-    
-    private func handleRegister() {
-        if password != confirmPassword {
-            alertMessage = "Passwords do not match."
-        } else if username.isEmpty || email.isEmpty || password.isEmpty {
-            alertMessage = "Please fill in all fields."
-        } else {
-            alertMessage = "Account created successfully! Welcome to GlucoRoot, \(username)!"
-        }
-        showAlert = true
-    }
-}
-
-struct InputField: View {
-    let title: String
-    @Binding var text: String
-    let placeholder: String
-    let systemImage: String
-    var isSecure: Bool = false
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 14, weight: .medium))
-            HStack {
-                Image(systemName: systemImage)
-                    .foregroundColor(.green)
-                if isSecure {
-                    SecureField(placeholder, text: $text)
-                } else {
-                    TextField(placeholder, text: $text)
+                    .padding()
                 }
             }
-            .padding()
-            .background(Color.white)
-            .cornerRadius(8)
+            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.green.opacity(0.5), lineWidth: 1)
+                // Success Message Popup
+                ZStack {
+                    if showingSuccessMessage {
+                        VStack {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Account Created Successfully")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                            }
+                            .padding()
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(10)
+                        }
+                        .transition(.move(edge: .top))
+                        .animation(.easeInOut)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation {
+                                    showingSuccessMessage = false
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.top, 20)
+                , alignment: .top
             )
         }
     }
-}
-
-struct RegistrationScreen_Previews: PreviewProvider {
-    static var previews: some View {
-        RegistrationScreen()
-            .previewLayout(.sizeThatFits) // This line can help
-            .padding()
+    
+    func createAccount() {
+        // Add account creation logic here
+        
+        // Show success message
+        withAnimation {
+            showingSuccessMessage = true
+        }
+        
+        // Reset form
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            username = ""
+            email = ""
+            password = ""
+            confirmPassword = ""
+        }
     }
 }
 
+struct CreateAccountView_Previews: PreviewProvider {
+    static var previews: some View {
+        CreateAccountView()
+    }
+}
