@@ -1,219 +1,433 @@
 import SwiftUI
 
-struct MealPlanCalendar: View {
-    @State private var viewMode: String = "week"
-    @State private var currentDate: Date = Date()
 
-    let calendar = Calendar.current
-
-    // Function to get week dates
-    func getWeekDates(for date: Date) -> [Date] {
-        var week: [Date] = []
-        let start = calendar.date(byAdding: .day, value: -calendar.component(.weekday, from: date) + 1, to: date)!
-        for i in 0..<7 {
-            if let day = calendar.date(byAdding: .day, value: i, to: start) {
-                week.append(day)
-            }
-        }
-        return week
+struct CalendarView: View {
+    @State private var selectedDate: Date = Date()
+    @State private var calendarViewMode: CalendarMode = .week
+    @State private var selectedViewDate: Date = Date()
+    @State private var selectedHour: Date?
+    @State private var showingHourlyView: Bool = false
+    
+    enum CalendarMode {
+        case week, month, year
     }
-
-    // Function to get month dates with empty slots for proper layout
-    func getMonthDates(for date: Date) -> [Date] {
-        var month: [Date] = []
-        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
-        let range = calendar.range(of: .day, in: .month, for: start)!
-        let firstDay = calendar.component(.weekday, from: start)
-
-        // Add days from the previous month
-        for i in 1..<firstDay {
-            if let prevDate = calendar.date(byAdding: .day, value: -i, to: start) {
-                month.append(prevDate)
-            }
-        }
-
-        // Add days of the current month
-        for day in range {
-            if let currentDate = calendar.date(byAdding: .day, value: day - 1, to: start) {
-                month.append(currentDate)
-            }
-        }
-
-        // Add days from the next month to fill the week
-        let lastDay = calendar.date(byAdding: .day, value: -1, to: calendar.date(byAdding: .month, value: 1, to: start)!)!
-        let lastWeekday = calendar.component(.weekday, from: lastDay)
-        for i in 1..<(8 - lastWeekday) {
-            if let nextDate = calendar.date(byAdding: .day, value: i, to: lastDay) {
-                month.append(nextDate)
-            }
-        }
-
-        // Pad with empty dates for layout
-        let totalDaysInMonth = 6 * 7 // 6 weeks, 7 days
-        while month.count < totalDaysInMonth {
-            month.append(Date.distantPast) // Use a distant past date as a placeholder
-        }
-
-        return month
-    }
-
-    // Function to get year dates
-    func getYearDates(for year: Int) -> [Date] {
-        return (0..<12).compactMap { month in
-            calendar.date(from: DateComponents(year: year, month: month + 1, day: 1))
-        }
-    }
-
-    // Function to navigate between weeks/months/years
-    func navigateTime(direction: Int) {
-        if viewMode == "week" {
-            currentDate = calendar.date(byAdding: .day, value: direction * 7, to: currentDate)!
-        } else if viewMode == "month" {
-            currentDate = calendar.date(byAdding: .month, value: direction, to: currentDate)!
-        } else if viewMode == "year" {
-            currentDate = calendar.date(byAdding: .year, value: direction, to: currentDate)!
-        }
-    }
-
-    // Function to navigate to a specific month
-    func navigateToMonth(_ month: Int) {
-        currentDate = calendar.date(from: DateComponents(year: calendar.component(.year, from: currentDate), month: month))!
-        viewMode = "month"
-    }
-
+    
+    private let calendar = Calendar.current
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter
+    }()
+    
+    private let monthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }()
+    
     var body: some View {
-        let dates: [Date]
-        let title: String
-
-        // DateFormatter for displaying the date
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-
-        if viewMode == "week" {
-            dates = getWeekDates(for: currentDate)
-            title = "Week of \(dateFormatter.string(from: dates[0]))"
-        } else if viewMode == "month" {
-            dates = getMonthDates(for: currentDate)
-            title = dateFormatter.string(from: currentDate)
-        } else {
-            dates = getYearDates(for: calendar.component(.year, from: currentDate))
-            title = "\(calendar.component(.year, from: currentDate))"
-        }
-
-        return VStack {
-            Text("Calendar")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.green)
-                .padding()
-
-            HStack {
-                Button(action: { navigateTime(direction: -1) }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title)
-                        .foregroundColor(.green)
+        NavigationView {
+            VStack(spacing: 15) {
+                calendarHeader
+                modeSelector
+                
+                ScrollView {
+                    VStack(spacing: 15) {
+                        switch calendarViewMode {
+                        case .week:
+                            WeekView(selectedDate: $selectedDate,
+                                   viewDate: $selectedViewDate,
+                                   showingHourlyView: $showingHourlyView)
+                        case .month:
+                            MonthView(selectedDate: $selectedDate,
+                                    viewDate: $selectedViewDate,
+                                    showingHourlyView: $showingHourlyView)
+                        case .year:
+                            YearView(selectedDate: $selectedDate,
+                                   viewDate: $selectedViewDate,
+                                   showingHourlyView: $showingHourlyView)
+                        }
+                        
+                        if showingHourlyView {
+                            VStack(alignment: .leading) {
+                                Text("Schedule for \(dateFormatter.string(from: selectedDate))")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                HourlyView(date: selectedDate, selectedHour: $selectedHour)
+                            }
+                            .padding(.top)
+                            .background(thirdcolor)
+                            .cornerRadius(15)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(bordercolor, lineWidth: 1)
+                            )
+                        }
+                    }
                 }
-
-                Spacer()
-
-                Text(title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                Spacer()
-
-                Button(action: { navigateTime(direction: 1) }) {
-                    Image(systemName: "chevron.right")
-                        .font(.title)
-                        .foregroundColor(.green)
-                }
+                .background(thirdcolor)
+                .cornerRadius(15)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(bordercolor, lineWidth: 1)
+                )
             }
             .padding()
-
-            if viewMode != "year" {
-                Button(action: {
-                    viewMode = viewMode == "week" ? "month" : "year"
-                }) {
-                    Text("View \(viewMode == "week" ? "Month" : "Year")")
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-            } else {
-                Button(action: {
-                    viewMode = "month"
-                }) {
-                    Text("View Month")
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
+            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
+            .navigationTitle("Calendar")
+        }
+    }
+    
+    var calendarHeader: some View {
+        HStack {
+            Button(action: decrementDate) {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(maincolor)
             }
-
-            if viewMode == "year" {
-                // Display months in a grid for the year view
-                let months = calendar.monthSymbols
-
-                let columns = Array(repeating: GridItem(.flexible()), count: 3)
-
-                LazyVGrid(columns: columns) {
-                    ForEach(0..<months.count, id: \.self) { index in
-                        Button(action: {
-                            navigateToMonth(index + 1)
-                        }) {
-                            Text(months[index])
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green.opacity(0.3))
-                                .cornerRadius(8)
-                                .foregroundColor(.green)
-                        }
-                    }
-                }
-                .padding()
-            } else {
-                let columns = Array(repeating: GridItem(.flexible()), count: viewMode == "week" ? 7 : 7)
-
-                LazyVGrid(columns: columns) {
-                    if viewMode != "year" {
-                        ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { day in
-                            Text(day)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.green)
-                        }
-                    }
-
-                    ForEach(dates, id: \.self) { date in
-                        if date == Date.distantPast {
-                            // Placeholder for empty days
-                            Color.clear
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else {
-                            Text("\(calendar.component(.day, from: date))")
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(date == Date() ? Color.green.opacity(0.5) : Color.clear)
-                                .cornerRadius(8)
-                                .onTapGesture {
-                                    print("Date clicked: \(date)")
-                                }
-                                .foregroundColor(viewMode == "month" && calendar.component(.month, from: date) != calendar.component(.month, from: currentDate) ? .gray : .black)
-                        }
-                    }
-                }
-                .padding()
+            
+            Spacer()
+            
+            Text(formattedHeaderDate)
+                .font(.headline)
+                .foregroundColor(textcolor)
+            
+            Spacer()
+            
+            Button(action: incrementDate) {
+                Image(systemName: "chevron.right")
+                    .foregroundColor(maincolor)
             }
         }
-        .background(Color.green.opacity(0.1).ignoresSafeArea())
+        .padding()
+        .background(thirdcolor)
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(bordercolor, lineWidth: 1)
+        )
+    }
+    
+    var modeSelector: some View {
+        HStack {
+            ForEach([CalendarMode.week, .month, .year], id: \.self) { mode in
+                Button(action: {
+                    calendarViewMode = mode
+                    showingHourlyView = false
+                }) {
+                    Text(String(describing: mode).capitalized)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(calendarViewMode == mode ? maincolor : thirdcolor)
+                        .foregroundColor(calendarViewMode == mode ? thirdcolor : textcolor)
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(bordercolor, lineWidth: 1)
+                        )
+                }
+            }
+        }
+    }
+    
+    var formattedHeaderDate: String {
+        switch calendarViewMode {
+        case .week:
+            return "Week of \(monthFormatter.string(from: selectedViewDate))"
+        case .month:
+            return monthFormatter.string(from: selectedViewDate)
+        case .year:
+            let yearFormatter = DateFormatter()
+            yearFormatter.dateFormat = "yyyy"
+            return yearFormatter.string(from: selectedViewDate)
+        }
+    }
+    
+    func decrementDate() {
+        switch calendarViewMode {
+        case .week:
+            selectedViewDate = calendar.date(byAdding: .weekOfYear, value: -1, to: selectedViewDate) ?? selectedViewDate
+        case .month:
+            selectedViewDate = calendar.date(byAdding: .month, value: -1, to: selectedViewDate) ?? selectedViewDate
+        case .year:
+            selectedViewDate = calendar.date(byAdding: .year, value: -1, to: selectedViewDate) ?? selectedViewDate
+        }
+    }
+    
+    func incrementDate() {
+        switch calendarViewMode {
+        case .week:
+            selectedViewDate = calendar.date(byAdding: .weekOfYear, value: 1, to: selectedViewDate) ?? selectedViewDate
+        case .month:
+            selectedViewDate = calendar.date(byAdding: .month, value: 1, to: selectedViewDate) ?? selectedViewDate
+        case .year:
+            selectedViewDate = calendar.date(byAdding: .year, value: 1, to: selectedViewDate) ?? selectedViewDate
+        }
     }
 }
 
-struct MealPlanCalendar_Previews: PreviewProvider {
+struct HourlyView: View {
+    let date: Date
+    @Binding var selectedHour: Date?
+    private let calendar = Calendar.current
+    private let hourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(0..<24) { hour in
+                    if let hourDate = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) {
+                        HourCell(
+                            time: hourDate,
+                            isSelected: calendar.isDate(hourDate, equalTo: selectedHour ?? Date(), toGranularity: .hour),
+                            formatter: hourFormatter
+                        )
+                        .onTapGesture {
+                            selectedHour = hourDate
+                        }
+                        Divider()
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: 300)
+    }
+}
+
+struct HourCell: View {
+    let time: Date
+    let isSelected: Bool
+    let formatter: DateFormatter
+    
+    var body: some View {
+        HStack {
+            Text(formatter.string(from: time))
+                .padding(.vertical, 8)
+                .padding(.horizontal)
+            Spacer()
+        }
+        .background(isSelected ? maincolor.opacity(0.1) : Color.clear)
+        .contentShape(Rectangle())
+    }
+}
+
+struct WeekView: View {
+    @Binding var selectedDate: Date
+    @Binding var viewDate: Date
+    @Binding var showingHourlyView: Bool
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        HStack {
+            ForEach(getDaysOfWeek(), id: \.self) { date in
+                DayCell(
+                    date: date,
+                    isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                    isToday: calendar.isDate(date, inSameDayAs: Date()),
+                    showingHourlyView: $showingHourlyView
+                )
+                .onTapGesture {
+                    selectedDate = date
+                    withAnimation {
+                        showingHourlyView = true
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+    
+    func getDaysOfWeek() -> [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: viewDate)
+        let dayOfWeek = calendar.component(.weekday, from: today)
+        let weekdays = calendar.range(of: .weekday, in: .weekOfYear, for: today)!
+        let days = (weekdays.lowerBound ..< weekdays.upperBound)
+            .compactMap { calendar.date(byAdding: .day, value: $0 - dayOfWeek, to: today) }
+        return days
+    }
+}
+
+struct MonthView: View {
+    @Binding var selectedDate: Date
+    @Binding var viewDate: Date
+    @Binding var showingHourlyView: Bool
+    private let calendar = Calendar.current
+    private let daysInWeek = 7
+    
+    var body: some View {
+        VStack {
+            HStack {
+                ForEach(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], id: \.self) { day in
+                    Text(day)
+                        .font(.caption)
+                        .frame(maxWidth: .infinity)
+                        .foregroundColor(textcolor)
+                }
+            }
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: daysInWeek)) {
+                ForEach(getDaysInMonth(), id: \.self) { date in
+                    if let date = date {
+                        DayCell(
+                            date: date,
+                            isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                            isToday: calendar.isDate(date, inSameDayAs: Date()),
+                            showingHourlyView: $showingHourlyView
+                        )
+                        .onTapGesture {
+                            selectedDate = date
+                            withAnimation {
+                                showingHourlyView = true
+                            }
+                        }
+                    } else {
+                        Text("")
+                            .frame(height: 40)
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+    
+    func getDaysInMonth() -> [Date?] {
+        let interval = calendar.dateInterval(of: .month, for: viewDate)!
+        let firstDay = interval.start
+        let firstWeekday = calendar.component(.weekday, from: firstDay)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: viewDate)!.count
+        
+        var days: [Date?] = Array(repeating: nil, count: firstWeekday - 1)
+        
+        for day in 1...daysInMonth {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay) {
+                days.append(date)
+            }
+        }
+        
+        let remainingDays = (daysInWeek - (days.count % daysInWeek)) % daysInWeek
+        days.append(contentsOf: Array(repeating: nil, count: remainingDays))
+        
+        return days
+    }
+}
+
+struct YearView: View {
+    @Binding var selectedDate: Date
+    @Binding var viewDate: Date
+    @Binding var showingHourlyView: Bool
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 20) {
+            ForEach(1...12, id: \.self) { month in
+                if let date = calendar.date(byAdding: .month, value: month - 1, to: startOfYear()) {
+                    MonthThumbnail(
+                        date: date,
+                        isSelected: calendar.isDate(date, equalTo: selectedDate, toGranularity: .month),
+                        isCurrentMonth: calendar.isDate(date, equalTo: Date(), toGranularity: .month)
+                    )
+                    .onTapGesture {
+                        selectedDate = date
+                        withAnimation {
+                            showingHourlyView = true
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+    
+    func startOfYear() -> Date {
+        let components = calendar.dateComponents([.year], from: viewDate)
+        return calendar.date(from: components)!
+    }
+}
+
+struct DayCell: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    @Binding var showingHourlyView: Bool
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        Text(String(calendar.component(.day, from: date)))
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(backgroundColor)
+            .foregroundColor(foregroundColor)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(isSelected ? maincolor : Color.clear, lineWidth: 2)
+            )
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return maincolor.opacity(0.3)
+        } else if isToday {
+            return maincolor.opacity(0.1)
+        }
+        return Color.clear
+    }
+    
+    private var foregroundColor: Color {
+        if isSelected || isToday {
+            return maincolor
+        }
+        return textcolor
+    }
+}
+
+struct MonthThumbnail: View {
+    let date: Date
+    let isSelected: Bool
+    let isCurrentMonth: Bool
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        VStack {
+            Text(DateFormatter().monthSymbols[calendar.component(.month, from: date) - 1])
+                .font(.headline)
+                .foregroundColor(foregroundColor)
+            Text(String(calendar.component(.year, from: date)))
+                .font(.caption)
+                .foregroundColor(textcolor)
+        }
+        .padding()
+        .background(backgroundColor)
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? maincolor : bordercolor, lineWidth: 1)
+        )
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return maincolor.opacity(0.3)
+        } else if isCurrentMonth {
+            return maincolor.opacity(0.1)
+        }
+        return thirdcolor
+    }
+    
+    private var foregroundColor: Color {
+        if isSelected || isCurrentMonth {
+            return maincolor
+        }
+        return textcolor
+    }
+}
+
+struct CalendarView_Previews: PreviewProvider {
     static var previews: some View {
-        MealPlanCalendar()
+        CalendarView()
     }
 }
