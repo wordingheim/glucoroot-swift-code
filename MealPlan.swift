@@ -3,170 +3,333 @@ import SwiftUI
 struct Meal: Identifiable {
     let id = UUID()
     var name: String
+    var prepTime: String
     var ingredients: [String]
-    var time: String
     var notes: String
+    var mealType: MealType
+    var isExpanded: Bool = false
 }
 
-struct DayMealPlanner: View {
-    @State private var meals: [String: Meal] = [:]
-    @State private var groceryList: [String] = []
-    @State private var newGroceryItem: String = ""
+enum MealType: String {
+    case breakfast = "Breakfast"
+    case lunch = "Lunch"
+    case dinner = "Dinner"
+    case snacks = "Snacks"
+}
+
+struct GroceryItem: Identifiable {
+    let id = UUID()
+    var name: String
+    var isChecked: Bool = false
+}
+
+struct MealPlannerView: View {
+    @State private var currentDate = Date()
+    @State private var meals: [Meal] = []
+    @State private var groceryList: [GroceryItem] = []
+    @State private var expandedSection: MealType?
+    @State private var addingNewMeal: Bool = false
     
-    let mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack"]
+    // New meal form states
+    @State private var newMealName = ""
+    @State private var newPrepTime = ""
+    @State private var newIngredients = ""
+    @State private var newNotes = ""
+    
+    // Grocery list states
+    @State private var newGroceryItem = ""
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Meal Planner")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(Color.green.opacity(0.8))
-                .padding(.top, 20)
-            
-            Text(Date().formatted(.dateTime.day().month().year()))
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            // Meals Section
-            VStack(spacing: 20) {
-                ForEach(mealTypes, id: \.self) { type in
-                    MealView(mealType: type, meal: $meals[type]) { newMeal in
-                        meals[type] = newMeal
-                    } removeMeal: {
-                        meals.removeValue(forKey: type)
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Meal Planner")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(textcolor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top)
+                    
+                    // Date Display
+                    dateHeader
+                    
+                    // Meal Sections
+                    mealSection(type: .breakfast)
+                    mealSection(type: .lunch)
+                    mealSection(type: .dinner)
+                    mealSection(type: .snacks)
+                    
+                    // Grocery List
+                    groceryListSection
+                }
+                .padding()
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(leading: backButton)
+            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
+        }
+    }
+    
+    var backButton: some View {
+        Button(action: {
+            // Handle back navigation
+        }) {
+            HStack {
+                Image(systemName: "chevron.left")
+                Text("Back to Calendar")
+            }
+            .foregroundColor(maincolor)
+        }
+    }
+    
+    var dateHeader: some View {
+        Text(currentDate.formatted(date: .long, time: .omitted))
+            .font(.headline)
+            .foregroundColor(textcolor)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(thirdcolor)
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(bordercolor, lineWidth: 1)
+            )
+    }
+    
+    func mealSection(type: MealType) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header
+            HStack {
+                Text(type.rawValue)
+                    .font(.title3)
+                    .foregroundColor(textcolor)
+                
+                Spacer()
+                
+                if expandedSection != type {
+                    Button(action: {
+                        expandedSection = type
+                        addingNewMeal = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(maincolor)
                     }
                 }
             }
-            .padding()
-            .background(Color.green.opacity(0.2))
-            .cornerRadius(10)
             
-            // Grocery List Section
-            VStack(spacing: 10) {
-                Text("Grocery List")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                HStack {
-                    TextField("Add item to grocery list", text: $newGroceryItem)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                    Button(action: addGroceryItem) {
-                        Image(systemName: "plus")
+            // Expanded add meal form
+            if expandedSection == type && addingNewMeal {
+                addMealForm(type: type)
+                    .transition(.opacity)
+            }
+            
+            // Existing meals
+            ForEach(meals.filter { $0.mealType == type }) { meal in
+                MealCardView(meal: meal) { isExpanded in
+                    if let index = meals.firstIndex(where: { $0.id == meal.id }) {
+                        meals[index].isExpanded = isExpanded
                     }
-                }
-                
-                ForEach(groceryList.indices, id: \.self) { index in
-                    HStack {
-                        Text(groceryList[index])
-                        Spacer()
-                        Button(action: { removeGroceryItem(at: index) }) {
-                            Image(systemName: "trash")
-                        }
-                    }
+                } onDelete: {
+                    meals.removeAll { $0.id == meal.id }
                 }
             }
-            .padding()
-            .background(Color.green.opacity(0.2))
-            .cornerRadius(10)
-            .padding(.bottom, 20)
         }
         .padding()
-        .background(Color.green.opacity(0.1).ignoresSafeArea())
+        .background(thirdcolor)
+        .cornerRadius(15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(bordercolor, lineWidth: 1)
+        )
+        .animation(.easeInOut, value: expandedSection)
     }
     
-    private func addGroceryItem() {
-        if !newGroceryItem.trimmingCharacters(in: .whitespaces).isEmpty {
-            groceryList.append(newGroceryItem.trimmingCharacters(in: .whitespaces))
-            newGroceryItem = ""
-        }
-    }
-    
-    private func removeGroceryItem(at index: Int) {
-        groceryList.remove(at: index)
-    }
-}
-
-struct MealView: View {
-    var mealType: String
-    @Binding var meal: Meal?
-    var updateMeal: (Meal) -> Void
-    var removeMeal: () -> Void
-    
-    var body: some View {
-        VStack {
-            Text(mealType)
-                .font(.headline)
-                .padding(.bottom, 5)
+    func addMealForm(type: MealType) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField("Meal Name", text: $newMealName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
             
-            if let meal = meal {
-                // Create a mutable copy of the meal
-                var mutableMeal = meal
-                
-                TextField("Meal Name", text: Binding(
-                    get: { mutableMeal.name },
-                    set: { mutableMeal.name = $0 }
-                ))
+            TextField("Prep Time", text: $newPrepTime)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: mutableMeal.name) { _ in updateMeal(mutableMeal) }
-                
-                TextField("Preparation Time", text: Binding(
-                    get: { mutableMeal.time },
-                    set: { mutableMeal.time = $0 }
-                ))
+            
+            TextField("Ingredients (comma separated)", text: $newIngredients)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: mutableMeal.time) { _ in updateMeal(mutableMeal) }
+            
+            TextEditor(text: $newNotes)
+                .frame(height: 100)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(bordercolor, lineWidth: 1)
+                )
+            
+            HStack {
+                Button("Save") {
+                    saveMeal(type: type)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(maincolor)
+                .cornerRadius(8)
                 
-                TextField("Ingredients (comma separated)", text: Binding(
-                    get: { mutableMeal.ingredients.joined(separator: ", ") },
-                    set: { mutableMeal.ingredients = $0.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: mutableMeal.ingredients) { _ in updateMeal(mutableMeal) }
+                Button("Cancel") {
+                    cancelAddMeal()
+                }
+                .foregroundColor(.red)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    func saveMeal(type: MealType) {
+        let meal = Meal(
+            name: newMealName,
+            prepTime: newPrepTime,
+            ingredients: newIngredients.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) },
+            notes: newNotes,
+            mealType: type
+        )
+        
+        meals.append(meal)
+        resetForm()
+    }
+    
+    func cancelAddMeal() {
+        resetForm()
+    }
+    
+    func resetForm() {
+        newMealName = ""
+        newPrepTime = ""
+        newIngredients = ""
+        newNotes = ""
+        expandedSection = nil
+        addingNewMeal = false
+    }
+    
+    var groceryListSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Grocery List")
+                .font(.title3)
+                .foregroundColor(textcolor)
+            
+            HStack {
+                TextField("Add item", text: $newGroceryItem)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                TextField("Notes", text: Binding(
-                    get: { mutableMeal.notes },
-                    set: { mutableMeal.notes = $0 }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: mutableMeal.notes) { _ in updateMeal(mutableMeal) }
-                
+                Button(action: addGroceryItem) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(maincolor)
+                }
+            }
+            
+            ForEach(groceryList) { item in
                 HStack {
-                    Button(action: {
-                        // Save logic for the individual meal
-                        print("Meal '\(mutableMeal.name)' saved!")
-                    }) {
-                        Text("Save Meal")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.green)
-                            .cornerRadius(8)
+                    Button(action: { toggleGroceryItem(item) }) {
+                        Image(systemName: item.isChecked ? "checkmark.square.fill" : "square")
+                            .foregroundColor(maincolor)
                     }
                     
-                    Button(action: removeMeal) {
-                        Text("Remove Meal")
+                    Text(item.name)
+                        .strikethrough(item.isChecked)
+                        .foregroundColor(textcolor)
+                    
+                    Spacer()
+                    
+                    Button(action: { removeGroceryItem(item) }) {
+                        Image(systemName: "trash")
                             .foregroundColor(.red)
                     }
                 }
-            } else {
-                Button(action: {
-                    let newMeal = Meal(name: "", ingredients: [], time: "", notes: "")
-                    updateMeal(newMeal)
-                }) {
-                    Text("Add \(mealType)")
-                        .foregroundColor(.green)
-                }
             }
         }
         .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 5)
+        .background(thirdcolor)
+        .cornerRadius(15)
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(bordercolor, lineWidth: 1)
+        )
+    }
+    
+    func addGroceryItem() {
+        guard !newGroceryItem.isEmpty else { return }
+        groceryList.append(GroceryItem(name: newGroceryItem))
+        newGroceryItem = ""
+    }
+    
+    func toggleGroceryItem(_ item: GroceryItem) {
+        if let index = groceryList.firstIndex(where: { $0.id == item.id }) {
+            groceryList[index].isChecked.toggle()
+        }
+    }
+    
+    func removeGroceryItem(_ item: GroceryItem) {
+        groceryList.removeAll { $0.id == item.id }
     }
 }
 
-struct DayMealPlanner_Previews: PreviewProvider {
+struct MealCardView: View {
+    let meal: Meal
+    let onExpand: (Bool) -> Void
+    let onDelete: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button(action: { onExpand(!meal.isExpanded) }) {
+                HStack {
+                    Text(meal.name)
+                        .font(.headline)
+                        .foregroundColor(textcolor)
+                    
+                    Spacer()
+                    
+                    Image(systemName: meal.isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(maincolor)
+                    
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            
+            if meal.isExpanded {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Prep Time: \(meal.prepTime)")
+                        .font(.subheadline)
+                    
+                    Text("Ingredients:")
+                        .font(.subheadline)
+                    ForEach(meal.ingredients, id: \.self) { ingredient in
+                        Text("• \(ingredient)")
+                            .font(.caption)
+                    }
+                    
+                    if !meal.notes.isEmpty {
+                        Text("Notes: \(meal.notes)")
+                            .font(.caption)
+                    }
+                }
+                .foregroundColor(textcolor)
+                .padding(.leading)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(8)
+        .animation(.easeInOut, value: meal.isExpanded)
+    }
+}
+
+struct MealPlannerView_Previews: PreviewProvider {
     static var previews: some View {
-        DayMealPlanner()
+        MealPlannerView()
     }
 }
