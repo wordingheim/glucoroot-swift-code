@@ -55,10 +55,17 @@ struct DiabetesAIAssistant: View {
         VStack(spacing: 16) {
             // User Greeting
             HStack {
-                Image(systemName: "person.circle.fill")
+                // Replace the existing Image view with this:
+                Image("AI_ChatbotAvatar1") // Use whatever name you gave the image in Assets
                     .resizable()
-                    .frame(width: 48, height: 48)
-                    .foregroundColor(maincolor)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(maincolor, lineWidth: 2)
+                    )
+                    .shadow(radius: 2)
                 
                 Text("\(greeting), \(userName)!")
                     .font(.title2)
@@ -67,7 +74,7 @@ struct DiabetesAIAssistant: View {
                 Spacer()
             }
             
-            Text("How can I assist you with your diabetes management today?")
+            Text("How can I assist you today?")
                 .foregroundColor(textcolor)
                 .multilineTextAlignment(.center)
             
