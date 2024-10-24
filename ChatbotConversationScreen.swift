@@ -4,6 +4,12 @@
 //
 //  Created by Ryan Lien on 10/24/24.
 //
+//
+//  ChatbotConversationScreen.swift
+//  DiabetesTest
+//
+//  Created by Ryan Lien on 10/24/24.
+//
 import SwiftUI
 
 // MARK: - Message Model
@@ -71,9 +77,21 @@ public struct ChatbotConversationScreen: View {
                 
                 Spacer()
                 
-                Text("GlucoGuide Assistant")
-                    .font(.headline)
-                    .foregroundColor(textcolor)
+                HStack(spacing: 8) {
+                    Image("AI_ChatbotAvatar1")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(maincolor, lineWidth: 1)
+                        )
+                    
+                    Text("GlucoGuide Assistant")
+                        .font(.headline)
+                        .foregroundColor(textcolor)
+                }
                 
                 Spacer()
                 
@@ -159,7 +177,20 @@ private struct ChatBubble: View {
     let message: ChatMessage
     
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 8) {
+            if !message.isUser {
+                // AI Avatar
+                Image("AI_ChatbotAvatar1")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 35, height: 35)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(maincolor, lineWidth: 1)
+                    )
+            }
+            
             if message.isUser { Spacer() }
             
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
@@ -177,6 +208,13 @@ private struct ChatBubble: View {
             }
             
             if !message.isUser { Spacer() }
+            
+            if message.isUser {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .frame(width: 35, height: 35)
+                    .foregroundColor(maincolor)
+            }
         }
     }
     
