@@ -43,6 +43,7 @@ enum PostCategory: String, CaseIterable, Identifiable {
 }
 
 struct CommunityPostCreationView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var title: String = ""
     @State private var content: String = ""
     @State private var selectedCategory: PostCategory = .meal
@@ -62,6 +63,17 @@ struct CommunityPostCreationView: View {
                 .padding()
             }
             .navigationTitle("Create Post")
+            .navigationBarItems(leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Back to Community")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
             .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
         }
     }
