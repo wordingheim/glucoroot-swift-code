@@ -42,6 +42,7 @@ enum RecurringFrequency: String, CaseIterable, Identifiable {
 }
 
 struct RemindersView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var reminders: [Reminder] = []
     @State private var newReminder = Reminder(type: .medication, time: Date(), description: "", isRecurring: false, recurringFrequency: nil)
     
@@ -58,12 +59,23 @@ struct RemindersView: View {
                 .padding()
             }
             .navigationTitle("Diabetes Reminders")
+            .navigationBarItems(leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Dashboard")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
             .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
         }
     }
     
     var addReminderForm: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 25) {
             Text("Add New Reminder")
                 .font(.headline)
                 .foregroundColor(maincolor)
@@ -76,8 +88,16 @@ struct RemindersView: View {
             .pickerStyle(MenuPickerStyle())
             .accentColor(maincolor)
             
-            DatePicker("Time", selection: $newReminder.time, displayedComponents: .hourAndMinute)
-                .accentColor(maincolor)
+            // Updated DatePicker to include both date and time
+            VStack(alignment: .leading) {
+                Text("Date & Time")
+                    .font(.subheadline)
+                    .foregroundColor(maincolor)
+                DatePicker("", selection: $newReminder.time)
+                    .datePickerStyle(CompactDatePickerStyle())
+                    .accentColor(maincolor)
+                    .labelsHidden()
+            }
             
             TextField("Description", text: $newReminder.description)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -138,9 +158,16 @@ struct ReminderCard: View {
                     Text(reminder.type.rawValue)
                         .font(.headline)
                         .foregroundColor(textcolor)
-                    Text(reminder.time, style: .time)
-                        .font(.subheadline)
-                        .foregroundColor(textcolor.opacity(0.7))
+                    
+                    // Updated to show both date and time
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(reminder.time, style: .date)
+                            .font(.subheadline)
+                            .foregroundColor(textcolor.opacity(0.7))
+                        Text(reminder.time, style: .time)
+                            .font(.subheadline)
+                            .foregroundColor(textcolor.opacity(0.7))
+                    }
                 }
                 
                 Spacer()
