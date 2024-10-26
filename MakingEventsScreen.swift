@@ -63,6 +63,7 @@ enum DiabetesType: String, CaseIterable, Identifiable {
 }
 
 struct EventCreationView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var title: String = ""
     @State private var selectedEventType: EventType = .support
     @State private var startDate = Date()
@@ -87,17 +88,28 @@ struct EventCreationView: View {
                         "Bilingual", "Teens", "Adults", "Seniors", "Parents"]
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    eventCreationForm
-                }
-                .padding()
-            }
-            .navigationTitle("Create Event")
-            .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
-        }
-    }
+           NavigationView {
+               ScrollView {
+                   VStack(spacing: 20) {
+                       eventCreationForm
+                   }
+                   .padding()
+               }
+               .navigationTitle("Create Event")
+               .navigationBarItems(leading:
+                   Button(action: {
+                       presentationMode.wrappedValue.dismiss()
+                   }) {
+                       HStack {
+                           Image(systemName: "chevron.left")
+                           Text("Back to Community")
+                       }
+                       .foregroundColor(maincolor)
+                   }
+               )
+               .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
+           }
+       }
     
     var eventCreationForm: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -178,7 +190,7 @@ struct EventCreationView: View {
             
             // Diabetes-Specific Information
             GroupBox(label: Text("Diabetes Information").foregroundColor(textcolor)) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 15) {
                     // Diabetes Types
                     Text("Target Audience")
                         .foregroundColor(textcolor)
