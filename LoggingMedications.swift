@@ -19,6 +19,7 @@ struct MedicationOption: Identifiable {
 }
 
 struct MedicationLoggingView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var selectedMedication: String = "Select Medication"
     @State private var customMedication: String = ""
     @State private var selectedUnit: String = "Select Unit"
@@ -67,6 +68,17 @@ struct MedicationLoggingView: View {
                 .padding()
             }
             .navigationTitle("Log Medication")
+            .navigationBarItems(leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Dashboard")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
             .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
         }
     }
