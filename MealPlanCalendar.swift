@@ -2,6 +2,7 @@ import SwiftUI
 
 
 struct CalendarView: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var selectedDate: Date = Date()
     @State private var calendarViewMode: CalendarMode = .week
     @State private var selectedViewDate: Date = Date()
@@ -76,6 +77,17 @@ struct CalendarView: View {
             .padding()
             .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
             .navigationTitle("Calendar")
+            .navigationBarItems(leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Nutrition View")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
         }
     }
     
