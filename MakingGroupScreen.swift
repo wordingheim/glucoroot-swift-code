@@ -45,6 +45,7 @@ enum GroupCategory: String, CaseIterable, Identifiable {
 }
 
 struct MakingGroupScreen: View {
+    @Environment(\.presentationMode) var presentationMode
     @State private var groupName: String = ""
     @State private var description: String = ""
     @State private var selectedCategory: GroupCategory = .support
@@ -67,9 +68,21 @@ struct MakingGroupScreen: View {
                 .padding()
             }
             .navigationTitle("Create Group")
+            .navigationBarItems(leading:
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Back to Community")
+                    }
+                    .foregroundColor(maincolor)
+                }
+            )
             .background(secondcolor.opacity(0.6).edgesIgnoringSafeArea(.all))
         }
     }
+    
     
     var groupCreationForm: some View {
         VStack(alignment: .leading, spacing: 15) {
