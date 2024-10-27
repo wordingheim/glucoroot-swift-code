@@ -8,6 +8,7 @@ import SwiftUI
 
 struct DiabetesRiskResult: View {
     let riskPercentage: Double
+    @State private var showDashboardButton = false
     
     private var riskLevel: String {
         if riskPercentage < 20 {
@@ -96,8 +97,10 @@ struct DiabetesRiskResult: View {
                         }
                     }
                     
+                    // Button for viewing detailed report
                     Button(action: {
                         // Action for viewing detailed report
+                        showDashboardButton = false // Just for clarity, resetting state
                     }) {
                         HStack {
                             Text("View Detailed Report")
@@ -110,6 +113,19 @@ struct DiabetesRiskResult: View {
                         .cornerRadius(8)
                     }
                     
+                    // Button for direct dashboard access
+                    Button(action: {
+                        showDashboardButton = true
+                    }) {
+                        Text("See your personalized dashboard")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(maincolor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+
+                    // Button for retaking assessment
                     Button(action: {
                         // Action for retaking assessment
                     }) {
