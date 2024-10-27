@@ -118,6 +118,28 @@ struct BasicDiabetesQuestionsView: View {
             }
             .padding(.horizontal)
             .padding(.bottom, 10)
+
+            // Dashboard Button (only shown after answering the last question)
+            if currentQuestionIndex == questions.count - 1 && answers[questions[currentQuestionIndex].key] != nil {
+                Button(action: {
+                    // Action for dashboard button
+                    print("Dashboard button clicked")
+                }) {
+                    Text("See your personalized dashboard")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(maincolor)
+                        .foregroundColor(thirdcolor)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(maincolor, lineWidth: 1)
+                        )
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 10)
+            }
         }
         .padding(20)
         .background(thirdcolor)
