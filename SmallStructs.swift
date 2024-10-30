@@ -38,6 +38,8 @@ struct SmallCard<Content: View>: View {
     var content: Content
     var color: Color = Color.white
     var header: String = ""
+    var height: Int = -1
+    var foreground: Color = Color.black
     var body: some View {
         VStack {
             if !header.isEmpty { 
@@ -48,6 +50,8 @@ struct SmallCard<Content: View>: View {
             content
         }
             .padding()
+            .foregroundStyle(foreground)
+            .frame(height: height > 0 ? CGFloat(height) : nil)
             .frame(maxWidth:.infinity)
             .background(color)
             .cornerRadius(8)
@@ -59,6 +63,7 @@ struct smallInfoBox: View {
     var text: String
     var color: Color = Color.white
     var textcolor: Color = Color.black
+    var opacity: Float = 1
     var body: some View {
         Text(text)
             .font(.caption)
@@ -185,27 +190,59 @@ struct numberBox: View {
 
 struct button1: View {
     var text: String
+    var color: Color = maincolor
+    var height: CGFloat = 36
+    var icon: String = ""
+    var textcolor: Color = .white
     var body: some View {
-        Text(text)
-            .fontWeight(.semibold)
+        HStack{
+            if icon != "" {
+                Image(systemName:icon)
+            }
+            Text(text)
+                .fontWeight(.semibold)
+        }
             .frame(maxWidth: .infinity)
-            .frame(height:36)
-            .foregroundColor(.white)
-            .background(maincolor)
+            .frame(height:height)
+            .foregroundColor(textcolor)
+            .background(color)
             .cornerRadius(8)
+        
     }
 }
 
 struct button2<Content: View>: View {
     var content: Content
+    var height: CGFloat = 36
+    var color: Color = maincolor
+    var textcolor: Color = .white
     var body: some View {
         content
             .fontWeight(.semibold)
             .frame(maxWidth: .infinity)
-            .frame(height:36)
-            .foregroundColor(.white)
-            .background(maincolor)
+            .frame(height:height)
+            .foregroundColor(textcolor)
+            .background(color)
             .cornerRadius(8)
+    }
+}
+
+struct buttondetail: View {
+    var icon: String = ""
+    var text: String
+    var imagecolor: Color = .black
+    var body: some View {
+        HStack {
+            if icon != "" {
+                Image(systemName: icon)
+                    .foregroundColor(imagecolor)
+            }
+            Text(text)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(.gray)
+        }.padding(.vertical, 4)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -219,6 +256,7 @@ struct space: View {
 
 struct boldtext: View {
     var text: String
+    var color: Color = maincolor
     var body: some View {
         Text(text)
             .fontWeight(.bold)
@@ -256,3 +294,81 @@ struct tg: View {
         Text("a")
     }
 }
+
+
+struct emptyPlaceHolder: View {
+    var body: some View {
+        secondcolor
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+struct sample_content: View {
+    var body: some View {
+        ZStack{
+            
+            VStack(spacing:0){
+                Color.blue
+                Color.red
+            }
+            Text("aaaaaaaa")
+                .foregroundStyle(.white)
+        }
+        
+    }
+}
+
+
+struct menuPicker: View {
+    var list: Array<String>
+    @Binding var picker: String
+    @Binding var isToggled: Bool
+    var body: some View {
+        Menu {
+            ForEach(list.indices, id: \.self) { i in
+                Button(action: {
+                    picker = list[i]
+                    isToggled = picker == "Other"
+                }) {
+                    Text(list[i])
+                }
+            }
+        } label: {
+            button2(content:HStack {
+                Text(picker)
+                Spacer()
+                Image(systemName: "chevron.down")
+            }.padding(),
+                    height:50, color:.white, textcolor:.black)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(maincolor, lineWidth: 1))
+        }
+    }
+}
+
+struct TagButton: View {
+    let tag: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        
+        Button(action: action) {
+            smallInfoBox(text:tag, color:(isSelected ? maincolor : thirdcolor),
+                         textcolor:(isSelected ? thirdcolor : textcolor))
+        }
+    }
+}
+
+#Preview {
+    /*buttondetail(icon:"bell", text:"aaaa", imagecolor:.blue)
+        .padding()*/
+    //button1(text:"aaaa")
+    //button2(content:"aaaaa")
+    //sample_content()
+    //button2(content:sample_content())
+    @Previewable @State var g = "a"
+    let gg = ["aa", "dfdfd", "kujhg"]
+    //menuPicker(list:gg, picker: $g)
+}
+
